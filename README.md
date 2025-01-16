@@ -7,4 +7,6 @@ npm install react@18 react-dom@18
 npm install yup
 npm install formik
 npm i -D daisyui@latest
+
+npm install @vis.gl/react-google-maps
 ```
