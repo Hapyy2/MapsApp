@@ -6,4 +6,5 @@ npx create-next-app@latest . --use-npm
 npm install react@18 react-dom@18
 npm install yup
 npm install formik
+npm i -D daisyui@latest
 ```
