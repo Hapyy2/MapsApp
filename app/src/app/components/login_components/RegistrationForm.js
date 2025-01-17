@@ -1,5 +1,5 @@
 "use client";
-import React, { useLayoutEffect } from "react";
+import React from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useRouter } from "next/navigation";
@@ -7,13 +7,6 @@ import authService from "@/services/authService";
 
 export default function RegistrationForm() {
   const router = useRouter();
-
-  useLayoutEffect(() => {
-    // Redirect if already logged in
-    if (authService.isAuthenticated()) {
-      router.push("/main");
-    }
-  }, [router]);
 
   const formik = useFormik({
     initialValues: {

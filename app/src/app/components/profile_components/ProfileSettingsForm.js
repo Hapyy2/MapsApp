@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useLayoutEffect } from "react";
+import React, { useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useRouter } from "next/navigation";
@@ -7,12 +7,6 @@ import authService from "@/services/authService";
 
 export default function ProfileSettingsForm() {
   const router = useRouter();
-
-  useLayoutEffect(() => {
-    if (!authService.isAuthenticated()) {
-      router.push("/login");
-    }
-  }, [router]);
 
   const formik = useFormik({
     initialValues: {

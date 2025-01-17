@@ -1,5 +1,5 @@
 "use client";
-import React, { useLayoutEffect, useState } from "react";
+import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useRouter } from "next/navigation";
@@ -8,12 +8,6 @@ import authService from "@/services/authService";
 export default function PasswordChangeForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useLayoutEffect(() => {
-    if (!authService.isAuthenticated()) {
-      router.push("/login");
-    }
-  }, [router]);
 
   const formik = useFormik({
     initialValues: {
