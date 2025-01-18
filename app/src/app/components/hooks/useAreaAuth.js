@@ -9,7 +9,7 @@ const AREA_TYPES = {
   PROTECTED: "protected",
 };
 
-const useAreaAuth = (area) => {
+export default function useAreaAuth(area) {
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -57,6 +57,4 @@ const useAreaAuth = (area) => {
   if (!mounted) return { isAuthenticated: false, user: null };
 
   return authState;
-};
-
-export default useAreaAuth;
+}

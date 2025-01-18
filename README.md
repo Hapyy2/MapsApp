@@ -9,4 +9,5 @@ npm install formik
 npm i -D daisyui@latest
 
 npm install @vis.gl/react-google-maps
+npm install lucide-react
 ```
