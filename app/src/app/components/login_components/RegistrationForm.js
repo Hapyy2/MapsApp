@@ -42,18 +42,12 @@ export default function RegistrationForm() {
         .required("Confirm password is required"),
     }),
     onSubmit: async (values, { setSubmitting, setStatus, resetForm }) => {
-      // Clear any previous status
       setStatus(null);
-
       try {
         setSubmitting(true);
         const { confirmPassword, ...newUserData } = values;
-
-        // Simulate network delay to match login form behavior
         await new Promise((resolve) => setTimeout(resolve, 500));
-
         const response = await authService.addUser(newUserData);
-        // Set success status
         setStatus({
           success: "Registration successful! Redirecting to login...",
         });
@@ -62,7 +56,6 @@ export default function RegistrationForm() {
           router.push("/login");
         }, 1500);
       } catch (error) {
-        // Set error status
         setStatus({
           error: error.message || "Registration failed. Please try again.",
         });

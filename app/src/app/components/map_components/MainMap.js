@@ -1,38 +1,92 @@
-import React from "react";
-import {
-  APIProvider,
-  Map,
-  AdvancedMarker,
-  useMap,
-} from "@vis.gl/react-google-maps";
-import { Plus, Minus, Crosshair } from "lucide-react";
+import React, { useEffect, useRef, useCallback } from "react";
+import { APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
 import useGeolocation from "@/app/components/hooks/useGeolocation";
+import useMapState from "@/app/components/hooks/useMapState";
+import UserLocationMarker from "./UserLocationMarker";
+import MapControls from "./MapControls";
+import PlaceMarkers from "./PlaceMarkers";
+import MapAlerts from "./MapAlerts";
+import MapSearch from "./MapSearch/MapSearch";
+import UserControl from "./UserControl";
+import PlaceModal from "./PlaceModal/PlaceModal";
+import placeService from "@/services/placeService";
 
 function MapContent() {
   const map = useMap();
+  const [mapState, updateMapState] = useMapState();
+  const mapClickListenerRef = useRef(null);
+
   const {
     location: userLocation,
-    error,
+    error: locationError,
     isLocating,
     updateLocation,
   } = useGeolocation();
 
-  const CustomMarker = () => (
-    <div className="relative">
-      <div className="absolute -top-4 -left-4 w-8 h-8 bg-blue-500/30 rounded-full animate-ping" />
-      <div className="absolute -top-3 -left-3 w-6 h-6 bg-blue-500/50 rounded-full" />
-      <div className="absolute -top-2 -left-2 w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg" />
-    </div>
+  // Load places
+  useEffect(() => {
+    const loadPlaces = () => {
+      try {
+        const userPlaces = placeService.getAllPlaces();
+        updateMapState({ places: userPlaces });
+      } catch (error) {
+        updateMapState({ error: "Failed to load places" });
+      }
+    };
+
+    loadPlaces();
+  }, [updateMapState]);
+
+  // Handle map double click
+  useEffect(() => {
+    if (!map || !window.google) return;
+
+    const handleDoubleClick = (event) => {
+      if (event.latLng) {
+        updateMapState({
+          selectedLocation: {
+            lat: event.latLng.lat(),
+            lng: event.latLng.lng(),
+          },
+          selectedPlace: null,
+          modalOpen: true,
+        });
+      }
+    };
+
+    mapClickListenerRef.current = window.google.maps.event.addListener(
+      map,
+      "dblclick",
+      handleDoubleClick
+    );
+
+    return () => {
+      if (mapClickListenerRef.current) {
+        window.google.maps.event.removeListener(mapClickListenerRef.current);
+      }
+    };
+  }, [map, updateMapState]);
+
+  const handlePlaceClick = useCallback(
+    (place) => {
+      updateMapState({
+        selectedPlace: place,
+        selectedLocation: null,
+        modalOpen: true,
+      });
+    },
+    [updateMapState]
   );
 
-  const handleZoom = (delta) => {
-    if (map) {
-      const newZoom = map.getZoom() + delta;
-      map.setZoom(newZoom);
-    }
-  };
+  const handlePlaceModalClose = useCallback(() => {
+    updateMapState({
+      modalOpen: false,
+      selectedPlace: null,
+      selectedLocation: null,
+    });
+  }, [updateMapState]);
 
-  const handleCenterMap = async () => {
+  const handleCenterMap = useCallback(async () => {
     try {
       const location = await updateLocation();
       if (location && map) {
@@ -40,90 +94,53 @@ function MapContent() {
         map.setZoom(17);
       }
     } catch (err) {
-      console.warn("Nie udało się wycentrować mapy:", err);
+      console.warn("Failed to center map:", err);
     }
-  };
+  }, [map, updateLocation]);
+
+  const handlePlaceChange = useCallback(
+    (type, place) => {
+      updateMapState((current) => {
+        const updatedPlaces = [...current.places];
+
+        switch (type) {
+          case "add":
+            return { ...current, places: [...updatedPlaces, place] };
+          case "update":
+            const index = updatedPlaces.findIndex((p) => p.id === place.id);
+            if (index !== -1) updatedPlaces[index] = place;
+            return { ...current, places: updatedPlaces };
+          case "delete":
+            return {
+              ...current,
+              places: updatedPlaces.filter((p) => p.id !== place.id),
+            };
+          default:
+            return current;
+        }
+      });
+    },
+    [updateMapState]
+  );
 
   return (
     <>
-      {userLocation && (
-        <AdvancedMarker position={userLocation} title="Twoja lokalizacja">
-          <CustomMarker />
-        </AdvancedMarker>
-      )}
-
-      {error && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="alert alert-error shadow-lg bg-white max-w-md">
-            <span>{error}</span>
-          </div>
-        </div>
-      )}
-
-      {isLocating && !error && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="alert shadow-lg bg-white">
-            <span>Pobieranie lokalizacji...</span>
-          </div>
-        </div>
-      )}
-
-      {/* Control buttons container */}
-      <div className="absolute right-3 bottom-3 flex flex-col gap-[1px] z-10">
-        {/* Zoom controls */}
-        <button
-          onClick={() => handleZoom(1)}
-          className="bg-white rounded-t-sm shadow-lg p-2 hover:bg-gray-100 focus:outline-none"
-          title="Przybliż"
-          style={{
-            cursor: "pointer",
-            width: "40px",
-            height: "40px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Plus size={20} color="#666" />
-        </button>
-        <button
-          onClick={() => handleZoom(-1)}
-          className="bg-white p-2 hover:bg-gray-100 focus:outline-none"
-          title="Oddal"
-          style={{
-            cursor: "pointer",
-            width: "40px",
-            height: "40px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Minus size={20} color="#666" />
-        </button>
-
-        {/* Location button */}
-        <button
-          onClick={handleCenterMap}
-          className="bg-white rounded-b-sm shadow-lg p-2 hover:bg-gray-100 focus:outline-none"
-          disabled={isLocating}
-          title="Centruj na mojej lokalizacji"
-          style={{
-            cursor: "pointer",
-            width: "40px",
-            height: "40px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {isLocating ? (
-            <span className="loading loading-spinner loading-sm"></span>
-          ) : (
-            <Crosshair size={20} color="#666" />
-          )}
-        </button>
-      </div>
+      <MapSearch />
+      <UserControl />
+      <UserLocationMarker position={userLocation} />
+      <PlaceMarkers places={mapState.places} onPlaceClick={handlePlaceClick} />
+      <PlaceModal
+        isOpen={mapState.modalOpen}
+        onClose={handlePlaceModalClose}
+        place={mapState.selectedPlace}
+        position={mapState.selectedLocation}
+        onPlaceChange={handlePlaceChange}
+      />
+      <MapAlerts
+        error={locationError || mapState.error}
+        isLocating={isLocating}
+      />
+      <MapControls onCenterMap={handleCenterMap} isLocating={isLocating} />
     </>
   );
 }
@@ -137,15 +154,20 @@ export default function MainMap() {
 
   if (!apiKey || !mapId) {
     return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <p>Brak wymaganej konfiguracji. Sprawdź zmienne środowiskowe.</p>
+      <div className="hero min-h-screen bg-base-200">
+        <div className="hero-content text-center">
+          <div className="max-w-md">
+            <h1 className="text-xl font-bold">Configuration Error</h1>
+            <p className="py-6">Missing required configuration.</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="w-full h-screen relative">
-      <APIProvider apiKey={apiKey}>
+      <APIProvider apiKey={apiKey} libraries={["places"]}>
         <Map
           mapId={mapId}
           defaultZoom={defZoom}
@@ -155,8 +177,8 @@ export default function MainMap() {
             disableDefaultUI: true,
             mapTypeControl: true,
             mapTypeControlOptions: {
-              position: 3, // TOP_RIGHT
-              style: 1, // HORIZONTAL_BAR
+              position: 3,
+              style: 1,
               mapTypeIds: ["roadmap", "satellite"],
             },
             zoomControl: false,
@@ -174,12 +196,6 @@ export default function MainMap() {
                 featureType: "poi",
                 elementType: "labels",
                 stylers: [{ visibility: "off" }],
-              },
-              {
-                selector: "#iframe_companion",
-                styles: {
-                  display: "none !important",
-                },
               },
             ],
             backgroundColor: "white",
