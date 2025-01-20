@@ -53,7 +53,7 @@ export default function useAreaAuth(area) {
     }
   }, [area, router, pathname]);
 
-  // Don't render anything until we've performed our authentication check
+  // Don't render anything until authentication check
   if (!mounted) return { isAuthenticated: false, user: null };
 
   return authState;
