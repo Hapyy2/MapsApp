@@ -33,7 +33,7 @@ export default function PasswordChangeForm() {
         .required("Confirm password is required"),
     }),
     onSubmit: async (values, { setStatus, resetForm }) => {
-      setIsSubmitting(true); // Use our custom state
+      setIsSubmitting(true);
       try {
         await authService.changePassword(
           values.currentPassword,
@@ -50,7 +50,7 @@ export default function PasswordChangeForm() {
         }, 2000);
       } catch (error) {
         setStatus({ error: error.message });
-        setIsSubmitting(false); // Only re-enable on error
+        setIsSubmitting(false);
       }
     },
   });
