@@ -122,8 +122,8 @@ A modern web application that allows users to create, manage and share location-
 
 1. Clone the repository
 ```bash
-git clone [repository-url]
-cd [repository-name]
+git clone https://github.com/Hapyy2/MapsApp.git
+cd MapsApp
 ```
 
 2. Install dependencies
